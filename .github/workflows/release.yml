@@ -1,0 +1,66 @@
+name: Release
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    uses: ./.github/workflows/check.yml
+
+  # lute compile has no cross target, so each platform builds on its own runner
+  compile:
+    if: github.event_name == 'release'
+    needs: [check]
+    strategy:
+      matrix:
+        include:
+          - { os: windows-latest, target: windows-x86_64, exe: lxit.exe }
+          - { os: ubuntu-latest, target: linux-x86_64, exe: lxit }
+          - { os: ubuntu-24.04-arm, target: linux-aarch64, exe: lxit }
+          - { os: macos-latest, target: macos-aarch64, exe: lxit }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: CompeyDev/setup-rokit@v0.1.2
+        with:
+          token: ${{ github.token }}
+
+      - name: Build
+        shell: bash
+        run: |
+          mkdir -p "dist/${{ matrix.target }}"
+          lute compile cli/run.luau --output "dist/${{ matrix.target }}/${{ matrix.exe }}"
+
+      - name: Zip
+        shell: bash
+        run: |
+          zip_name="lxit-${{ github.event.release.tag_name }}-${{ matrix.target }}.zip"
+          cd "dist/${{ matrix.target }}"
+          if [ "$RUNNER_OS" = Windows ]; then 7z a "../$zip_name" "${{ matrix.exe }}"; else zip "../$zip_name" "${{ matrix.exe }}"; fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lxit-${{ matrix.target }}
+          path: dist/*.zip
+
+  publish_binaries:
+    if: github.event_name == 'release'
+    needs: [compile]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Upload
+        run: gh release upload "${{ github.event.release.tag_name }}" dist/*.zip lxit.d.luau --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}

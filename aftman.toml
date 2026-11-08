@@ -1,0 +1,4 @@
+[tools]
+luau-lsp = "johnnymorganz/luau-lsp@1.70.1"
+stylua = "johnnymorganz/stylua@2.6.0"
+lute = "luau-lang/lute@1.0.0"

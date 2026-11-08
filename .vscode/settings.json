@@ -1,0 +1,27 @@
+{
+  "stylua.targetReleaseVersion": "latest",
+  "editor.formatOnSave": true,
+  "files.eol": "\n",
+  "files.exclude": {
+    ".gitattributes": true,
+    ".gitignore": true,
+    ".github": true,
+    ".agents": true,
+    ".luaurc": true,
+    ".vscode": true,
+    ".zed": true,
+    ".env": true,
+    "stylua.toml": true,
+    "aftman.toml": true
+  },
+  "files.readonlyInclude": {
+    "**/LICENSE": true
+  },
+  "luau-lsp.platform.type": "standard",
+  "luau-lsp.fflags.enableNewSolver": false,
+  "luau-lsp.completion.imports.requireStyle": "alwaysAbsolute",
+  "luau-lsp.completion.imports.stringRequires.enabled": true,
+  "luau-lsp.ignoreGlobs": [
+    "utils/unzip/**"
+  ]
+}
