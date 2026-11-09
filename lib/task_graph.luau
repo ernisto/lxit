@@ -202,13 +202,25 @@ local function depends(...: string)
 	end
 end
 
+-- per segment: parallel branches may create the same parent between exists and mkdir
+local function await_make_dirs(dir: string)
+	local prefix = ''
+	for segment in dir:gmatch '[^/]+' do
+		prefix = if prefix == '' then segment else `{prefix}/{segment}`
+		if fs.exists(prefix) then continue end
+
+		local ok, err = pcall(fs.createDirectory :: any, prefix)
+		if not ok and not fs.exists(prefix) then error(err, 0) end
+	end
+end
+
 local function await_outputs(...: string)
 	local node = get_node()
 	for _, path in { ... } do
 		table.insert(node.outputs, path)
 
 		local parent = path:match '^(.+)/[^/]+$'
-		if parent and not flags.dry_run then fs.createDirectory(parent, { makeParents = true }) end
+		if parent and not flags.dry_run then await_make_dirs(parent) end
 	end
 end
 
