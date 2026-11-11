@@ -30,6 +30,8 @@ export type node = {
 local running: { [string]: true } = {}
 local current: { [thread]: node? } = {}
 local watched: { [string]: watch_target } = {}
+-- paths some node outputs: watch mode skips them, their depends are watched instead
+local produced: { [string]: true } = {}
 -- runs of this process only (watch reruns, argv changes); nothing is persisted
 local runs: { [string]: { newest: number, signature: string } } = {}
 
@@ -152,6 +154,8 @@ end
 
 local function close_node(node: node)
 	release_node(node)
+	-- a node doing its work inline (no step) never decides; still watch its depends
+	if node.decision.kind == 'pending' and not flags.dry_run then await_scan_depends(node) end
 
 	local decision = node.decision
 	if decision.kind ~= 'stale' then return end
@@ -218,6 +222,7 @@ local function await_outputs(...: string)
 	local node = get_node()
 	for _, path in { ... } do
 		table.insert(node.outputs, path)
+		produced[path] = true
 
 		local parent = path:match '^(.+)/[^/]+$'
 		if parent and not flags.dry_run then await_make_dirs(parent) end
@@ -243,6 +248,7 @@ end
 -- module
 return table.freeze {
 	watched = watched,
+	produced = produced,
 	await_step = await_step,
 	await_task = await_task,
 	depends = depends,

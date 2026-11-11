@@ -10,8 +10,17 @@ local RED = '\27[31m'
 local RESET = '\27[0m'
 
 -- functions
+-- outputs get rewritten by the reruns themselves; watching them loops forever
+local function is_produced(path: string): boolean
+	for output in task_graph.produced do
+		if path == output or path:sub(1, #output + 1) == `{output}/` then return true end
+	end
+	return false
+end
+
 local function await_watch_new_paths(observer: watcher.watcher)
 	for _, target in task_graph.watched do
+		if is_produced(target.path) then continue end
 		watcher.await_add(observer, target.path, target.glob)
 	end
 end
