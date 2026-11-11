@@ -15,6 +15,7 @@ local BOOLS: { [string]: boolean } = table.freeze {
 
 -- loaded on first read: modules cannot yield at require time
 local values: values?
+local secrets: { string } = {}
 
 -- values
 local function await_values(): values
@@ -65,6 +66,20 @@ local function bool_var(name: string, default: boolean?): boolean
 	return if value ~= nil then value else error(`env var {name} is not a bool (true|false|1|0|yes|no): {text}`, 2)
 end
 
+-- secrets
+local function secret_string(name: string, default: string?): string
+	local value = await_read(name) or default or missing(name)
+	if not table.find(secrets, value) then table.insert(secrets, value) end
+	return value
+end
+
+local function redact(text: string): string
+	for _, secret in secrets do
+		text = text:gsub(secret:gsub('%p', '%%%0'), '***')
+	end
+	return text
+end
+
 -- module
 return table.freeze {
 	await_values = await_values,
@@ -72,4 +87,6 @@ return table.freeze {
 	string = string_var,
 	number = number_var,
 	bool = bool_var,
+	secret = table.freeze { string = secret_string },
+	redact = redact,
 }

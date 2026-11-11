@@ -88,6 +88,6 @@ return table.freeze {
 	outputs = task_graph.await_outputs,
 	fetch = fetch,
 	watch = watch,
-	env = table.freeze { string = env.string, number = env.number, bool = env.bool },
+	env = table.freeze { string = env.string, number = env.number, bool = env.bool, secret = env.secret },
 	flags = flags,
 }

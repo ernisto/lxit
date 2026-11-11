@@ -1,3 +1,4 @@
+local env = require '../utils/env'
 local flags = require './flags'
 local print_task = require './print_task'
 local task = require '@lute/task'
@@ -43,7 +44,7 @@ local function await_watch(fn: task_graph.task_fn, ...: any)
 		local ok, err = pcall(task_graph.await_task, fn, table.unpack(args, 1, args.n))
 		-- fresh reruns never hit a `run` step, so nothing else flushes this branch
 		print_task.flush_buffers(coroutine.running())
-		if not ok then print(`{RED}{err}{RESET}`) end
+		if not ok then print(env.redact(`{RED}{err}{RESET}`)) end
 
 		await_watch_new_paths(observer)
 	end

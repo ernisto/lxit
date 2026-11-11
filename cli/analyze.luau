@@ -59,7 +59,11 @@ end
 local function env_var(call: ast): env_var?
 	local func = call.func
 	if func.tag ~= 'indexname' or not ENV_KINDS[func.index.text] then return nil end
-	if func.expression.tag ~= 'local' or func.expression.token.text ~= 'env' then return nil end
+	-- `env.string` or `env.secret.string`
+	local base = if func.expression.tag == 'indexname' and func.expression.index.text == 'secret'
+		then func.expression.expression
+		else func.expression
+	if base.tag ~= 'local' or base.token.text ~= 'env' then return nil end
 
 	local first = call.arguments[1]
 	local name = first and first.node.tag == 'string' and first.node.token.text

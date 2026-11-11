@@ -11,7 +11,7 @@ No shared types module: each type lives with its owner (`lib/init` re-exports `e
 - `lib/init.luau` — public `lxit` API facade (`flags` for the cli). → `binary`, `flags`, `print_task`, `task_graph`, `watch`, `utils/env`
 - `lib/flags.luau` — argv flags (`-f`/`--force`, `--dry-run`, `-y`/`--yes`) + remaining `args` (command, task, task args), frozen. → none
 - `lib/task_graph.luau` — task nodes (owns `node`/`task_fn` types), freshness, steps, `depends`/`outputs`, parallel branches; no formatting. → `flags`, `print_task`, `utils/glob`
-- `lib/print_task.luau` — all call-tree printing (takes a structural `owner` = `{ call, depth, parent }`, so it needs no task_graph types): call descriptions, step marks (`fresh`/`dry`/`run`), per-branch buffers (a `run` step flushes). → none
+- `lib/print_task.luau` — all call-tree printing (takes a structural `owner` = `{ call, depth, parent }`, so it needs no task_graph types): call descriptions, step marks (`fresh`/`dry`/`run`), per-branch buffers (a `run` step flushes); lines go through `env.redact`. → `utils/env`
 - `lib/watch.luau` — task rerun loop on change; flushes its branch buffer after each rerun. → `flags`, `print_task`, `task_graph`, `utils/watch`
 - `lib/binary/init.luau` — bin objects, argv, exec; owns `args`/`cmd<A>` types. → `resolve`, `spec`, `task_graph`, `utils/env`
 - `lib/binary/spec.luau` — `owner/repo[@version]` parsing. → none
@@ -21,7 +21,7 @@ No shared types module: each type lives with its owner (`lib/init` re-exports `e
 
 General purpose, no lxit deps (`utils/`):
 
-- `utils/env.luau` — `.env` + process env, lazy, typed reads (`string`/`number`/`bool`), `await_is_set(name)`.
+- `utils/env.luau` — `.env` + process env, lazy, typed reads (`string`/`number`/`bool`), `await_is_set(name)`; `secret.string` registers its value, `redact(text)` swaps registered values for `***` (lxit's own prints only: child stdio is inherited, lute has no streaming pipe).
 - `utils/version.luau` — semver compare.
 - `utils/glob.luau` — `match(pattern, path)`, `await_expand(pattern) -> (files, dirs walked)`; `*` `?` `**` `{a,b}` (spec: `tests/lute/glob.spec.luau`).
 - `utils/watch.luau` — `new(on_change)` + `await_add(watcher, path, glob?)`: per-dir `fs.watch` handles (non-recursive), optional glob filter on event names; unwatched new dirs always notify; deleted dirs (and their subdirs) get their handles closed and dropped.

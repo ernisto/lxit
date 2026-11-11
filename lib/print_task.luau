@@ -1,3 +1,5 @@
+local env = require '../utils/env'
+
 -- vars
 local INDENT = '  '
 local CYAN = '\27[36m'
@@ -57,10 +59,10 @@ local function write_line(line: line)
 	-- parallel branches interleave, so re-print the header the line hangs under when context was lost
 	local anchor = if line.header and line.owner then line.owner.parent else line.owner
 	if anchor and not is_within(last_owner, anchor) then
-		print(`{string.rep(INDENT, anchor.depth)}{CYAN}{anchor.call} …{RESET}`)
+		print(env.redact(`{string.rep(INDENT, anchor.depth)}{CYAN}{anchor.call} …{RESET}`))
 	end
 
-	print(line.text)
+	print(env.redact(line.text))
 	last_owner = line.owner
 end
 

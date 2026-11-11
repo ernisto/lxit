@@ -157,7 +157,7 @@ local function await_cli(tasks: tasks)
 	local ok, err = pcall(x.run :: any, fn, table.unpack(args))
 	if ok then return end
 
-	print(`{RED}{err}{RESET}`)
+	print(env.redact(`{RED}{err}{RESET}`))
 	process.exit(1)
 end
 

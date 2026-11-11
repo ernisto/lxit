@@ -31,6 +31,7 @@ declare lxit: {
 		string: (name: string, default: string?) -> string,
 		number: (name: string, default: number?) -> number,
 		bool: (name: string, default: boolean?) -> boolean,
+		secret: { string: (name: string, default: string?) -> string },
 	},
 
 	flags: {
