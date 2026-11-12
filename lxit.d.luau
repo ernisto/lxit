@@ -1,7 +1,7 @@
 -- lxit task runner global, injected into tasks.luau
 
+export type lxit_cmd<A> = (args: A?, env: lxit_env?) -> ()
 type lxit_env = { [string]: string }
-type lxit_cmd<A> = (args: A?, env: lxit_env?) -> ()
 type lxit_task_fn = (...any) -> ...any
 
 declare lxit: {
@@ -11,7 +11,7 @@ declare lxit: {
 	-- task fn: open a task node and return its results; bin: run a command step `(args, env?)`
 	run: <A, B, C, R...>(target: (A, B, C) -> R..., a: A?, b: B?, c: C?) -> R...,
 	-- run a Luau fn as a cached step; results dropped
-	call: <A, B, C>(fn: (A, B, C) -> ...any, a: A?, b: B?, c: C?) -> (),
+	call: <A, B, C, R...>(fn: (A, B, C) -> R..., a: A?, b: B?, c: C?) -> R...,
 	-- freeze target + args into an entry for `all`
 	bind: <A, B, C>(target: (A, B, C) -> ...any, a: A?, b: B?, c: C?) -> any,
 	-- run entries in parallel, return each entry's first result in order
