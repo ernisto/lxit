@@ -127,7 +127,7 @@ local function await_decide(node: node, signature: string)
 	node.decision = if await_check_fresh(node, stale) then { kind = 'fresh', key = key } else stale
 end
 
-local function await_step(signature: string, label: string, perform: () -> ())
+local function await_step(signature: string, label: string, perform: () -> ...any)
 	local node = current[coroutine.running()]
 	if node and node.decision.kind == 'pending' then await_decide(node, signature) end
 	if node then print_task.print_header(node, node.decision.kind == 'fresh') end

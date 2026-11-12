@@ -142,8 +142,10 @@ local function write_line(line: line)
 	if line.close and owner then return write_close(owner) end
 
 	-- a fresh task hides its fresh children; a stale one below still draws the path to it
-	local hidden = not flags.deep and line.header and owner and headers[owner] == true
-	if hidden and owner.parent and headers[owner.parent] == true then return end
+	local parent = owner and owner.parent
+	if not flags.deep and line.header and owner and headers[owner] == true and parent and headers[parent] == true then
+		return
+	end
 
 	local anchor = owner
 	while anchor and not written[anchor] do
@@ -202,7 +204,8 @@ local function resolve(node: owner, fresh: boolean)
 	headers[node] = fresh
 	local lines = held[node]
 	held[node] = nil
-	for _, line in lines or {} do
+	if not lines then return end
+	for _, line in lines do
 		write_line(line)
 	end
 end
