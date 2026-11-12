@@ -136,7 +136,11 @@ local function await_step(signature: string, label: string, perform: () -> ())
 	if flags.dry_run then return print_task.print_step(node, 'dry', label) end
 
 	print_task.print_step(node, 'run', label)
-	perform()
+	local ok, err = pcall(perform)
+	if ok then return end
+
+	print_task.print_failure(node, label, err)
+	error(err, 0)
 end
 
 -- nodes
@@ -155,7 +159,8 @@ end
 
 local function close_node(node: node)
 	release_node(node)
-	print_task.print_header(node, false)
+	local ran = node.decision.kind ~= 'fresh' and not flags.dry_run
+	print_task.print_close(node, if ran then 'done' else nil)
 	-- a node doing its work inline (no step) never decides; still watch its depends
 	if node.decision.kind == 'pending' and not flags.dry_run then await_scan_depends(node) end
 
@@ -189,7 +194,7 @@ local function await_task(fn: task_fn, ...: any): ...any
 
 	if not results[1] then
 		release_node(node)
-		print_task.print_header(node, false)
+		print_task.print_close(node, 'failed')
 		error(results[2], 0)
 	end
 

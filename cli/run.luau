@@ -4,6 +4,7 @@ local process = require '@std/process'
 
 local analyze = require './analyze'
 local env = require '../utils/env'
+local print_task = require '../lib/print_task'
 local x = require '../lib'
 
 -- vars
@@ -157,7 +158,7 @@ local function await_cli(tasks: tasks)
 	local ok, err = pcall(x.run :: any, fn, table.unpack(args))
 	if ok then return end
 
-	print(env.redact(`{RED}{err}{RESET}`))
+	if not print_task.was_reported(err) then print(env.redact(`{RED}{err}{RESET}`)) end
 	process.exit(1)
 end
 
