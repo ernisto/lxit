@@ -23,7 +23,7 @@ Task runner on lute, shipped as a compiled binary (`lxit = "ernisto/lxit@<versio
 
 - `lxit.run(task_fn, ...)` opens a task node (fn must be named — the name keys freshness), returns the fn's results.
 - `lxit.run(bin.sub.cmd, args, env?)` runs a command step. `args` table: positional entries + `key = value` → `--key value` (`_`→`-`, 1-char → `-k`, `true` → bare flag, `false`/nil skipped, array → repeated flag); flags go before positionals.
-- `lxit.call(fn, ...)` runs a Luau fn as a cached step (results dropped — a fresh step skips fn).
+- `lxit.call(fn, ...)` runs a Luau fn as a cached step and returns its results; a skipped step (fresh task, dry run) returns nothing, which is safe to chain into later `call`s since they skip too.
 - `lxit.fetch(url, path)` download step.
 - `lxit.env.string(name, default?)` / `lxit.env.number(...)` / `lxit.env.bool(...)` (`true|false|1|0|yes|no`) read env inside tasks; no default → required, missing/empty errors loud. Use the paren form `env.string('X', d)` for defaults so the task list sees it. `lxit.env.secret.string(name, default?)` reads like `string` but masks the value as `***` in everything lxit prints (call tree, errors) — not child process stdio, so still pass secrets to commands as child env (3rd `lxit.run` arg), never as flags.
 - `lxit.depends(...)` / `lxit.outputs(...)` declare the current node's inputs/outputs (`outputs` creates parent dirs). `depends` takes globs too (`'places/**/*.luau'`, `'{client,server}/*.luau'`; `*`/`?` within a segment, `**` across): mtime is the newest match, watch mode only reacts to matching files (plus new dirs under the glob). Must be inside a task node.

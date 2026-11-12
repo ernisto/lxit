@@ -26,14 +26,18 @@ local function run(target: any, ...: any): ...any
 	return nil
 end
 
--- a cached step, unlike run(fn) which opens a task node; results are dropped since a fresh step skips fn
-local function call(fn: task_graph.task_fn, ...: any)
+-- a cached step, unlike run(fn) which opens a task node; returns fn's results, nothing when skipped (fresh, dry)
+local function call(fn: task_graph.task_fn, ...: any): ...any
 	local args = table.pack(...)
 	local text = print_task.describe_call(debug.info(fn, 'n') or 'fn', ...)
 
+	local results
 	task_graph.await_step(text, text, function()
-		fn(table.unpack(args, 1, args.n))
+		results = table.pack(fn(table.unpack(args, 1, args.n)))
 	end)
+
+	if not results then return end
+	return table.unpack(results, 1, results.n)
 end
 
 local function fetch(url: string, path: string)
