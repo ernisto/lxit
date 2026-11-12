@@ -19,6 +19,7 @@ end
 return table.freeze {
 	force = take('-f', '--force'),
 	dry_run = take '--dry-run',
+	deep = take '--deep',
 	assume_yes = take('-y', '--yes'),
 	args = table.freeze(args),
 }

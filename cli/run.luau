@@ -29,6 +29,7 @@ local OPTIONS: { row } = table.freeze {
 	{ label = '-y, --yes', description = `{DIM}install missing tools without asking{RESET}` },
 	{ label = '-f, --force', description = `{DIM}rerun every step, ignore freshness{RESET}` },
 	{ label = '    --dry-run', description = `{DIM}print the call tree, run nothing{RESET}` },
+	{ label = '    --deep', description = `{DIM}show children of fresh tasks{RESET}` },
 }
 
 -- help

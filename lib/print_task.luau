@@ -1,4 +1,5 @@
 local env = require '../utils/env'
+local flags = require './flags'
 
 -- vars
 local INDENT = '  '
@@ -7,6 +8,7 @@ local DIM = '\27[2m'
 local YELLOW = '\27[33m'
 local GREEN = '\27[32m'
 local RED = '\27[31m'
+local BLUE = '\27[34m'
 local RESET = '\27[0m'
 
 -- only what printing needs; task_graph nodes fit it structurally
@@ -17,7 +19,8 @@ export type outcome = 'done' | 'failed'
 
 local STEP_MARKS: { [step_status]: string } = table.freeze {
 	fresh = `{DIM}·`,
-	dry = `{YELLOW}~{WHITE}`,
+	-- dry run marks what would run like a run, it just doesn't
+	dry = `{WHITE}>`,
 	run = `{WHITE}>`,
 }
 
@@ -61,14 +64,17 @@ local function describe_call(name: string, ...: any): string
 end
 
 -- lines
-local function header_text(node: owner, suffix: string): string
+local function header_mark(node: owner): (string, string)
 	local outcome = outcomes[node]
-	local style = if outcome == 'failed'
-		then `{RED}✗`
-		elseif outcome == 'done' then `{GREEN}✓`
-		elseif headers[node] == true then `{DIM}·`
-		else `{YELLOW}~`
-	return `{string.rep(INDENT, node.depth)}{style} {node.call}{suffix}{RESET}`
+	if outcome == 'failed' then return RED, '✗' end
+	if outcome == 'done' then return GREEN, '✓' end
+	if headers[node] == true then return DIM, '·' end
+	return YELLOW, '~'
+end
+
+local function header_text(node: owner): string
+	local color, mark = header_mark(node)
+	return `{string.rep(INDENT, node.depth)}{color}{mark} {node.call}{RESET}`
 end
 
 local function is_within(inner: owner?, outer: owner): boolean
@@ -97,7 +103,22 @@ local function draw_header(node: owner)
 
 	written[node] = true
 	if outcomes[node] then drawn_final[node] = true end
-	print(env.redact(header_text(node, '')))
+	print(env.redact(header_text(node)))
+end
+
+-- parallel branches interleave: re-print, dim blue, every header above the line that the last printed line doesn't share
+local function print_context(anchor: owner?)
+	local chain = {}
+	local cursor = anchor
+	while cursor and not is_within(last_owner, cursor) do
+		table.insert(chain, 1, cursor)
+		cursor = cursor.parent
+	end
+
+	for _, node in chain do
+		local _, mark = header_mark(node)
+		print(env.redact(`{string.rep(INDENT, node.depth)}{DIM}{BLUE}{mark} {node.call} …{RESET}`))
+	end
 end
 
 -- the header is already on screen with a running mark, so the outcome gets its own line
@@ -105,9 +126,8 @@ local function write_close(node: owner)
 	-- a failure already shows on its step, so the header turns red only when drawn late
 	if outcomes[node] ~= 'done' or drawn_final[node] or not written[node] then return end
 
-	local parent = node.parent
-	if parent and not is_within(last_owner, parent) then print(env.redact(header_text(parent, ' …'))) end
-	print(env.redact(header_text(node, '')))
+	print_context(node.parent)
+	print(env.redact(header_text(node)))
 	last_owner = node
 end
 
@@ -122,9 +142,8 @@ local function write_line(line: line)
 	if line.close and owner then return write_close(owner) end
 
 	-- a fresh task hides its fresh children; a stale one below still draws the path to it
-	if line.header and owner and headers[owner] == true and owner.parent and headers[owner.parent] == true then
-		return
-	end
+	local hidden = not flags.deep and line.header and owner and headers[owner] == true
+	if hidden and owner.parent and headers[owner.parent] == true then return end
 
 	local anchor = owner
 	while anchor and not written[anchor] do
@@ -132,8 +151,7 @@ local function write_line(line: line)
 	end
 	if line.header and anchor == owner then return end
 
-	-- parallel branches interleave, so re-print the header the line hangs under when context was lost
-	if anchor and not is_within(last_owner, anchor) then print(env.redact(header_text(anchor, ' …'))) end
+	print_context(anchor)
 	if owner then draw_header(owner) end
 	if not line.header then print(env.redact(line.text :: string)) end
 	last_owner = owner
@@ -215,7 +233,7 @@ local function print_step(node: owner?, status: step_status, label: string)
 	if node then
 		print_header(node)
 		-- a fresh task hides its steps
-		if status == 'fresh' and headers[node] == true then return end
+		if status == 'fresh' and headers[node] == true and not flags.deep then return end
 	end
 
 	local depth = if node then node.depth + 1 else 0

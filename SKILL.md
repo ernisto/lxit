@@ -9,10 +9,10 @@ Task runner on lute, shipped as a compiled binary (`lxit = "ernisto/lxit@<versio
 
 ## CLI
 
-`lxit [-f|--force] [--dry-run] [-y|--yes] <command> <task> [args]` — commands: `run` (once), `watch` (rerun on change to any depends path seen).
+`lxit [-f|--force] [--dry-run] [--deep] [-y|--yes] <command> <task> [args]` — commands: `run` (once), `watch` (rerun on change to any depends path seen).
 
 - No command → help, in order: commands, options, env vars (every var any task reads, with status), tasks + args parsed from `tasks.luau` (call style: `lint(dev | lobby | match?)` — literal-union params (direct or via a type alias) show their choices, others their name, `?` = optional).
-- `--force` reruns everything. `--dry-run` runs no command/fetch/call, treats missing depends as stale, `watch` runs once. `--yes` auto-installs missing tools (needed for CI / non-console stdin).
+- `--force` reruns everything. `--dry-run` runs no command/fetch/call, treats missing depends as stale, `watch` runs once. `--deep` shows children of fresh tasks. `--yes` auto-installs missing tools (needed for CI / non-console stdin).
 - Env from `.env` merged over process env, frozen; read via `lxit.env.*` (below). Commands inherit it.
 - Task description = the `--` comment block right above its `local function` (no blank line between), then `(needs env: …)`.
 - Task list also shows env vars each task reads (`NAME?` = has default), found statically through the task's body and every local fn it references: dim = set, yellow = unset but has a default, red = unset and required.
@@ -37,7 +37,7 @@ Nothing is persisted. A task's steps skip (make-style) when not `--force`, all o
 
 ## Output
 
-Call tree: per task, dim `· name(args)` when fresh (steps hidden), else yellow `~ name(args)` then white steps — `>` ran, `~` would run (dry-run). A task header prints at its first step (when freshness is known); an ancestor printed before deciding shows blue, its fresh steps as dim `·`. Parallel branches buffer per branch; `…` re-prints the header a line belongs to when branches interleave.
+Call tree: per task, dim `· name(args)` when fresh (fresh children and steps hidden unless `--deep`), else yellow `~ name(args)` then steps — white `>` runs (or would, in dry-run), dim `·` fresh. A header waits until its task decides freshness (lines under it are held), so it is never drawn running by mistake. A finished task whose header is already on screen gets a green `✓ name(args)` line (drawn `✓` directly if not yet printed). A failing step prints red `✗ label` plus the error; its tasks turn red `✗` only if their header was not printed yet. Parallel branches buffer per branch; on interleave, every header the previous line doesn't share is re-printed dim blue with `…`.
 
 ## Bins
 
