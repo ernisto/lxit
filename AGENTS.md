@@ -11,7 +11,7 @@ No shared types module: each type lives with its owner (`lib/init` re-exports `e
 - `lib/init.luau` — public `lxit` API facade (`flags` for the cli). → `binary`, `flags`, `print_task`, `task_graph`, `watch`, `utils/env`
 - `lib/flags.luau` — argv flags (`-f`/`--force`, `--dry-run`, `-y`/`--yes`) + remaining `args` (command, task, task args), frozen. → none
 - `lib/task_graph.luau` — task nodes (owns `node`/`task_fn` types), freshness, steps, `depends`/`outputs`, parallel branches; no formatting. → `flags`, `print_task`, `utils/glob`
-- `lib/print_task.luau` — all call-tree printing (takes a structural `owner` = `{ call, depth, parent }`, so it needs no task_graph types): call descriptions, step marks (`fresh`/`dry`/`run`), per-branch buffers (a `run` step flushes); lines go through `env.redact`. → `utils/env`
+- `lib/print_task.luau` — all call-tree printing (takes a structural `owner` = `{ call, depth, parent }`, so it needs no task_graph types): call descriptions, lazy headers (printed at a node's first step: dim `·` fresh + steps hidden, else yellow `~`; ancestors first), step marks (`fresh`/`dry`/`run`), per-branch buffers (a `run` step flushes); lines go through `env.redact`. → `utils/env`
 - `lib/watch.luau` — task rerun loop on change; flushes its branch buffer after each rerun. → `flags`, `print_task`, `task_graph`, `utils/watch`
 - `lib/binary/init.luau` — bin objects, argv, exec; owns `args`/`cmd<A>` types. → `resolve`, `spec`, `task_graph`, `utils/env`
 - `lib/binary/spec.luau` — `owner/repo[@version]` parsing. → none

@@ -37,7 +37,7 @@ Nothing is persisted. A task's steps skip (make-style) when not `--force`, all o
 
 ## Output
 
-Call tree: `name(args)` per task, then steps — `>` ran, `·` fresh (skipped), `~` would run (dry-run). Parallel branches buffer per branch; `…` re-prints the header a line belongs to when branches interleave.
+Call tree: per task, dim `· name(args)` when fresh (steps hidden), else yellow `~ name(args)` then white steps — `>` ran, `~` would run (dry-run). A task header prints at its first step (when freshness is known); an ancestor printed before deciding shows blue, its fresh steps as dim `·`. Parallel branches buffer per branch; `…` re-prints the header a line belongs to when branches interleave.
 
 ## Bins
 

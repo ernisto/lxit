@@ -2,7 +2,7 @@ local env = require '../utils/env'
 
 -- vars
 local INDENT = '  '
-local CYAN = '\27[36m'
+local WHITE = '\27[37m'
 local DIM = '\27[2m'
 local YELLOW = '\27[33m'
 local RESET = '\27[0m'
@@ -14,9 +14,12 @@ export type step_status = 'fresh' | 'dry' | 'run'
 
 local STEP_MARKS: { [step_status]: string } = table.freeze {
 	fresh = `{DIM}·`,
-	dry = `{YELLOW}~`,
-	run = `{DIM}>`,
+	dry = `{YELLOW}~{WHITE}`,
+	run = `{WHITE}>`,
 }
+
+-- printed headers -> whether drawn fresh
+local headers: { [owner]: boolean } = setmetatable({}, { __mode = 'k' }) :: any
 
 local buffers: { [thread]: { line } } = {}
 local buffer_parent: { [thread]: thread } = {}
@@ -46,6 +49,11 @@ local function describe_call(name: string, ...: any): string
 end
 
 -- lines
+local function header_text(node: owner, suffix: string): string
+	local style = if headers[node] then `{DIM}·` else `{YELLOW}~`
+	return `{string.rep(INDENT, node.depth)}{style} {node.call}{suffix}{RESET}`
+end
+
 local function is_within(inner: owner?, outer: owner): boolean
 	local cursor = inner
 	while cursor do
@@ -59,7 +67,7 @@ local function write_line(line: line)
 	-- parallel branches interleave, so re-print the header the line hangs under when context was lost
 	local anchor = if line.header and line.owner then line.owner.parent else line.owner
 	if anchor and not is_within(last_owner, anchor) then
-		print(env.redact(`{string.rep(INDENT, anchor.depth)}{CYAN}{anchor.call} …{RESET}`))
+		print(env.redact(header_text(anchor, ' …')))
 	end
 
 	print(env.redact(line.text))
@@ -107,11 +115,22 @@ local function flush_buffers(thread: thread)
 end
 
 -- print
-local function print_header(node: owner)
-	emit { owner = node, header = true, text = `{string.rep(INDENT, node.depth)}{CYAN}{node.call}{RESET}` }
+-- lazy (freshness is known at the first step), idempotent; ancestors first, drawn running if still undecided
+local function print_header(node: owner, fresh: boolean)
+	if headers[node] ~= nil then return end
+	if node.parent then print_header(node.parent, false) end
+
+	headers[node] = fresh
+	emit { owner = node, header = true, text = header_text(node, '') }
 end
 
 local function print_step(node: owner?, status: step_status, label: string)
+	if node then
+		print_header(node, false)
+		-- a fresh task hides its steps
+		if status == 'fresh' and headers[node] then return end
+	end
+
 	local depth = if node then node.depth + 1 else 0
 	emit { owner = node, header = false, text = `{string.rep(INDENT, depth)}{STEP_MARKS[status]} {label}{RESET}` }
 

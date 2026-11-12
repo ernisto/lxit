@@ -130,6 +130,7 @@ end
 local function await_step(signature: string, label: string, perform: () -> ())
 	local node = current[coroutine.running()]
 	if node and node.decision.kind == 'pending' then await_decide(node, signature) end
+	if node then print_task.print_header(node, node.decision.kind == 'fresh') end
 
 	if node and node.decision.kind == 'fresh' then return print_task.print_step(node, 'fresh', label) end
 	if flags.dry_run then return print_task.print_step(node, 'dry', label) end
@@ -154,6 +155,7 @@ end
 
 local function close_node(node: node)
 	release_node(node)
+	print_task.print_header(node, false)
 	-- a node doing its work inline (no step) never decides; still watch its depends
 	if node.decision.kind == 'pending' and not flags.dry_run then await_scan_depends(node) end
 
@@ -181,13 +183,13 @@ local function await_task(fn: task_fn, ...: any): ...any
 		decision = { kind = 'pending' },
 	}
 	current[thread] = node
-	print_task.print_header(node)
 
 	local results = table.pack(pcall(fn, ...))
 	current[thread] = node.parent
 
 	if not results[1] then
 		release_node(node)
+		print_task.print_header(node, false)
 		error(results[2], 0)
 	end
 
