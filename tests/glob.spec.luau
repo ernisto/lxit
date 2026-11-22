@@ -23,4 +23,10 @@ test.suite('lxit glob', function(suite)
 		t.that(not glob.match('*.toml', 'axtoml'))
 		t.that(glob.match('config/*.toml', 'config\\modes.toml'))
 	end)
+
+	suite:case('expand_skips_dirs_the_pattern_cannot_enter', function(t)
+		local files, dirs = glob.await_expand '*.toml'
+		t.that(table.find(files, 'aftman.toml') ~= nil)
+		t.that(#dirs == 1 and dirs[1] == '.')
+	end)
 end)

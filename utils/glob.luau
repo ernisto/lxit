@@ -60,16 +60,30 @@ local function base(pattern: string): string
 	return if #plain > 0 then table.concat(plain, '/') else '.'
 end
 
--- ponytail: walks the whole base subtree even when the pattern has no `**`; prune by depth if that gets slow
-local function await_walk(pattern: string, path: string, files: { string }, dirs: { string })
-	if fs.metadata(path).type ~= 'dir' then
+-- a dir can hold matches only while its segments match the pattern's leading ones (or a `**` is reached)
+local function could_contain(pattern: { string }, path: string): boolean
+	if path == '.' then return true end
+
+	local parts = path:split '/'
+	for k, segment in parts do
+		local part = pattern[k]
+		if part == '**' then return true end
+		if not part or not segment:find(segment_pattern(part)) then return false end
+	end
+	return #parts < #pattern
+end
+
+local function await_walk(pattern: string, path: string, is_dir: boolean, files: { string }, dirs: { string })
+	if not is_dir then
 		if match(pattern, path) then table.insert(files, path) end
 		return
 	end
+	if not could_contain(pattern:split '/', path) then return end
 
 	table.insert(dirs, path)
 	for _, entry in fs.listDirectory(path) do
-		await_walk(pattern, if path == '.' then entry.name else `{path}/{entry.name}`, files, dirs)
+		local child = if path == '.' then entry.name else `{path}/{entry.name}`
+		await_walk(pattern, child, entry.type == 'dir', files, dirs)
 	end
 end
 
@@ -78,7 +92,7 @@ local function await_expand(pattern: string): ({ string }, { string })
 	local files, dirs = {}, {}
 	for _, variant in expand_braces(pattern) do
 		local root = base(variant)
-		if fs.exists(root) then await_walk(variant, root, files, dirs) end
+		if fs.exists(root) then await_walk(variant, root, fs.metadata(root).type == 'dir', files, dirs) end
 	end
 	return files, dirs
 end
