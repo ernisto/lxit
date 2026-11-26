@@ -24,6 +24,7 @@ export type node = {
 	depends: { string },
 	outputs: { string },
 	dirty: boolean,
+	deciding: boolean?,
 	decision: decision,
 }
 
@@ -111,6 +112,15 @@ local function await_check_fresh(node: node, stale: stale): boolean
 end
 
 local function await_decide(node: node, signature: string)
+	-- parallel branches share their parent node: one decides, the rest wait for it
+	if node.deciding then
+		while node.decision.kind == 'pending' do
+			task.wait(POLL_SECONDS)
+		end
+		return
+	end
+	node.deciding = true
+
 	local targets = if #node.outputs > 0 then node.outputs else node.depends
 	if #targets == 0 then
 		node.decision = { kind = 'uncached' }
