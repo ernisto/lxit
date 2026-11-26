@@ -16,14 +16,14 @@ export type signature = { params: { param }, env: { env_var }, doc: string? }
 -- types
 local function literal_union(node: ast): { string }?
 	if node.tag == 'group' then return literal_union(node.type) end
-	if node.tag == 'string' then return { node.token.text } end
+	if node.tag == 'string' then return { node.value.text } end
 	if node.tag ~= 'union' then return nil end
 
 	local names = {}
-	for _, pair in node.types do
-		if pair.node.tag == 'optional' then continue end
+	for _, member in node.types do
+		if member.tag == 'optional' then continue end
 
-		local choices = literal_union(pair.node)
+		local choices = literal_union(member)
 		if not choices then return nil end
 		table.move(choices, 1, #choices, #names + 1, names)
 	end
@@ -33,8 +33,8 @@ end
 local function is_optional(node: ast): boolean
 	if node.tag ~= 'union' then return false end
 
-	for _, pair in node.types do
-		if pair.node.tag == 'optional' then return true end
+	for _, member in node.types do
+		if member.tag == 'optional' then return true end
 	end
 	return false
 end
@@ -45,7 +45,7 @@ local function read_param(param: ast, aliases: { [string]: { string } }): param
 
 	-- `T?` is a two-member union: read choices off `T`
 	local optional = is_optional(annotation)
-	local base = if optional and #annotation.types == 2 then annotation.types[1].node else annotation
+	local base = if optional and #annotation.types == 2 then annotation.types[1] else annotation
 
 	local alias = if base.tag == 'reference' then aliases[base.name.text] else nil
 	return table.freeze {
@@ -66,7 +66,7 @@ local function env_var(call: ast): env_var?
 	if base.tag ~= 'local' or base.token.text ~= 'env' then return nil end
 
 	local first = call.arguments[1]
-	local name = first and first.node.tag == 'string' and first.node.token.text
+	local name = first and first.tag == 'string' and first.value.text
 	if not name then return nil end
 
 	-- a second arg is the default, so the var is optional
@@ -117,7 +117,7 @@ end
 -- the comment block right above a statement (no blank line between), without `--` markers
 local function doc_comment(stat: ast): string?
 	local lines = {}
-	local trivia = stat.localKeyword.leadingTrivia
+	local trivia = stat.modifierKeyword.leadingTrivia
 
 	for i = #trivia, 1, -1 do
 		local item = trivia[i]
@@ -154,8 +154,8 @@ local function await_parse(path: string): { [string]: task_info }
 	local infos = {}
 	for _, stat in functions do
 		local params = {}
-		for _, pair in stat.func.parameters do
-			table.insert(params, read_param(pair.node, aliases))
+		for _, param in stat.func.parameters do
+			table.insert(params, read_param(param, aliases))
 		end
 
 		local env, refs = scan_body(stat.func, tasks_by_local)
